@@ -45,6 +45,7 @@ class XMLHandler(ContentHandler):
 class ServerHandler(SocketServer.DatagramRequestHandler):
   
     def handle(self):
+       
         while 1:
             line = self.rfile.read()
             if not line:
@@ -57,7 +58,13 @@ class ServerHandler(SocketServer.DatagramRequestHandler):
             if Method == 'INVITE':
                 respuesta = "SIP/2.0 100 Trying\r\n\r\n"
                 respuesta += "SIP/2.0 180 Ringing\r\n\r\n"
-                respuesta += "SIP/2.0 200 OK\r\n\r\n"
+                respuesta += "SIP/2.0 200 OK\r\n"
+                respuesta += "Content type:application/sdp" + "\r\n\r\n"
+                O = "o=" + UA['account_username'] + " " + UA['uaserver_ip']
+                # Colocamos nuestro RTP puerto para que nos manden ahí
+                M = "m=audio " + UA['rtpaudio_puerto'] + " RTP\r\n"
+                CUERPO = "v=0\r\n" + O + " \r\ns=mysession\r\n" + "t=0\r\n" + M
+                respuesta += CUERPO
                 self.wfile.write(respuesta)
             elif Method == 'ACK':
                 aEjecutar = './mp32rtp -i 127.0.0.1 -p 23032 < ' + sys.argv[3]
