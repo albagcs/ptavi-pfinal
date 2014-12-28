@@ -48,6 +48,9 @@ if __name__ == "__main__":
     elif METHOD == "BYE":
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
         my_socket.send(METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n")
+        
+    else:
+        my_socket.send(METHOD + " sip: Método no registrado")
    
     try:
         data = my_socket.recv(1024)
@@ -56,12 +59,15 @@ if __name__ == "__main__":
         sys.exit("No server listening at " + SOCKET_ERROR)
     print 'Recibido\r\n', data
     
-    if METHOD == "INVITE":
-        #He recibido los tres mensajes a la vez, en una misma línea
-        METHOD = 'ACK'
-        print "Enviando: " + METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
-        my_socket.send(METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n")
-
+    if data == "SIP/2.0 404 User Not Found\r\n\r\n":
+        sys.exit(" ")
+    else:
+        if METHOD == "INVITE":
+            #He recibido los tres mensajes a la vez, en una misma línea
+            METHOD = 'ACK'
+            print "Enviando: " + METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
+            my_socket.send(METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n")
+            
 print "Terminando socket..."
 # Cerramos todo
 my_socket.close()
