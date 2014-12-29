@@ -82,13 +82,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 
             elif Method == "INVITE":
                 To_name = line_partida[1].split(" ")[0]
-                print Registro
                 for Client in Registro:
                     if To_name == Client:
                         To_IP = Registro[Client][0]                        
                         To_Port = Registro[Client][1]
                         #Creamos socket, configuramos y lo atamos a un 
-                        #servidor/puerto, sk es socket, por pep8 sk
+                        #servidor/puerto, sk es my_socket, por pep8 sk
                         sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                         sk.connect((To_IP, int(To_Port)))
@@ -103,7 +102,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         #Tenemos directamente una conexión con el que nos abrió 
                         # el socket enviando el INVITE
                         self.wfile.write(data)
-                        sk.close()
                     elif Registro.has_key(To_name) == False:
                         self.wfile.write("SIP/2.0 404 User Not Found\r\n\r\n")
                         
@@ -115,12 +113,36 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         To_Port = Registro[Client][1]
                         print To_IP + To_Port
                 #Creamos socket, configuramos y lo atamos a un servidor/puerto
-                my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                my_socket.connect((To_IP, int(To_Port)))
-                my_socket.send(line)
-                my_socket.close()
+                sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sk.connect((To_IP, int(To_Port)))
+                sk.send(line)
                 
+            elif Method == "BYE":
+                To_name = line_partida[1].split(" ")[0]
+                print To_name
+                for Client in Registro:
+                    if Client == To_name:
+                        To_IP = Registro[Client][0]                        
+                        To_Port = Registro[Client][1]
+                        print To_IP + To_Port
+                #Creamos socket, configuramos y lo atamos a un servidor/puerto
+                sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sk.connect((To_IP, int(To_Port)))
+                sk.send(line)
+                try:
+                    data = sk.recv(1024)
+                except socket.error:
+                    SOCKET_ERROR = To_IP + " PORT:" + To_Port
+                    sys.exit("No server listening at " + SOCKET_ERROR)
+                print 'Recibido\r\n', data + 'from ' + To_name
+                #Tenemos directamente una conexión con el que nos abrió 
+                # el socket enviando el INVITE
+                self.wfile.write(data)
+                # cerramos el socket al final del todo, ya no lo utilizremos +
+                sk.close()
+                               
             else:
                 self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
                  
