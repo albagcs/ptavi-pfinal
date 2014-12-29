@@ -6,6 +6,7 @@ from xml.sax.handler import ContentHandler
 from uaserver import XMLHandler
 import sys
 import socket
+import os
 
 if __name__ == "__main__":
     """
@@ -67,9 +68,16 @@ if __name__ == "__main__":
             METHOD = 'ACK'
             print "Enviando: " + METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
             my_socket.send(METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n")
-            
+            receptor_Ip = data.split("o=")[1].split(" ")[1].split("s")[0]
+            receptor_Puerto = data.split("m=")[1].split(" ")[1]
+            os.system("chmod 777 mp32rtp")
+            aEjecutar = './mp32rtp -i ' + receptor_Ip + ' -p '
+            aEjecutar += receptor_Puerto + " < " + UA['audio_path']
+            print "Vamos a ejecutar", aEjecutar
+            os.system(aEjecutar)
+            print("Ha terminado la ejecución de fich de audio")
+                        
 print "Terminando socket..."
 # Cerramos todo
 my_socket.close()
 print "Fin."        
-
