@@ -59,12 +59,12 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 self.wfile.write("SIP/2.0 405 Method Not Allowed\r\n\r\n")
             #Si tenemos Register, procedemos a rellenar nuestro Registro
             if Method == "REGISTER":
-                #Primero comprobamos los tiempos de expiracion
+                #Primero comprobamos los tiempos de expiración
                 for Client in Registro.keys():
                     #Vamos comparando con el tiempo de cada clave-valor
                     Tiempo = Registro[Client][2]
                     if time.time() >= Tiempo:
-                        print Client + " Borrado"
+                        print Client + " Borrado\r\n"
                         del Registro[Client]                        
                 Clave = line_partida[1]
                 Puerto_UA = line_partida[2].split(" ")[0]
@@ -72,11 +72,11 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 Time = time.time() + int(Expires)
                 Valores = [self.client_address[0], Puerto_UA, Time]
                 Registro[Clave] = Valores
-                print Clave + " Registrado"
+                print Clave + " Registrado\r\n"
                 #Si entramos con un valor a 0, somos borrados
                 if int(Expires) == 0:
                     del Registro[Clave]
-                    print Client + " Borrado"
+                    print Client + " Borrado\r\n"
                 self.register2file()
                 self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
                 
@@ -92,26 +92,26 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                         sk.connect((To_IP, int(To_Port)))
                         sk.send(line)
-                        print "INVITE Enviado a " + To_name
+                        print "INVITE Enviado a " + To_name + '\r\n'
                         try:
                             data = sk.recv(1024)
                         except socket.error:
                             SOCKET_ERROR = To_IP + " PORT:" + To_Port
                             sys.exit("No server listening at " + SOCKET_ERROR)
-                        print 'Recibido\r\n', data + 'from ' + To_name
+                        print 'Respuesta recibida de ' + To_name + '\r\n'
                         #Tenemos directamente una conexión con el que nos abrió 
                         # el socket enviando el INVITE
                         self.wfile.write(data)
                     elif Registro.has_key(To_name) == False:
                         self.wfile.write("SIP/2.0 404 User Not Found\r\n\r\n")
                         
-            elif Method == "ACK":
+            elif Method == "ACK": 
                 To_name = line_partida[1].split(" ")[0]
+                print 'ACK recibido y reenviado a ' + To_name + '\r\n'
                 for Client in Registro:
                     if Client == To_name:
                         To_IP = Registro[Client][0]                        
                         To_Port = Registro[Client][1]
-                        print To_IP + To_Port
                 #Creamos socket, configuramos y lo atamos a un servidor/puerto
                 sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -120,12 +120,11 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 
             elif Method == "BYE":
                 To_name = line_partida[1].split(" ")[0]
-                print To_name
+                print 'BYE enviado a ' + To_name + '\r\n'
                 for Client in Registro:
                     if Client == To_name:
                         To_IP = Registro[Client][0]                        
                         To_Port = Registro[Client][1]
-                        print To_IP + To_Port
                 #Creamos socket, configuramos y lo atamos a un servidor/puerto
                 sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -136,7 +135,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 except socket.error:
                     SOCKET_ERROR = To_IP + " PORT:" + To_Port
                     sys.exit("No server listening at " + SOCKET_ERROR)
-                print 'Recibido\r\n', data + 'from ' + To_name
+                print 'Respuesta recibida de ' + To_name + '\r\n'
                 #Tenemos directamente una conexión con el que nos abrió 
                 # el socket enviando el INVITE
                 self.wfile.write(data)
