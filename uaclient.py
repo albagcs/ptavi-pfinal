@@ -7,6 +7,7 @@ from uaserver import XMLHandler
 import sys
 import socket
 import os
+import time
 
 if __name__ == "__main__":
     """
@@ -27,6 +28,8 @@ if __name__ == "__main__":
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((UA['regproxy_ip'], int(UA['regproxy_puerto'])))
+    # Empezamos a escribir en el fichero log
+    DESTINO = UA['regproxy_ip'] + ':' + UA['regproxy_puerto'] + ': '
     # Enviamos diferentes cosas según el método
     if METHOD == "REGISTER":
         LINE = UA['account_username'] + ":" + UA['uaserver_puerto']
@@ -34,6 +37,12 @@ if __name__ == "__main__":
         print "Enviando: " + "EXPIRES:" + str(OPTION) + '\r\n\r\n'
         LINE_EXPIRES = "Expires: " + str(OPTION) + '\r\n\r\n'
         my_socket.send(METHOD + " sip:" + LINE + " SIP/2.0\r\n" + LINE_EXPIRES)
+        EXPIRE =  " sip:" + LINE + " SIP/2.0 Expires: " + str(OPTION) + '\n'
+        fich = open(UA['log_path'], 'w')
+        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        START = 'Starting...\n'
+        fich.write(START + Time + ' Sent to ' + DESTINO + METHOD + ' ' + EXPIRE)
+        fich.close()
         
     elif METHOD == "INVITE":
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
@@ -45,10 +54,21 @@ if __name__ == "__main__":
         CUERPO = "v=0\r\n" + O + "s=mysession\r\n" + "t=0\r\n" + M
         print CUERPO
         my_socket.send(CABECERAS + CUERPO)
+        CAB = CABECERAS.replace("\r\n", " ")
+        CUERPO = CUERPO.replace('\r\n', ' ') + '\n'
+        fich = open(UA['log_path'], 'a')
+        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        fich.write(Time + ' Sent to ' + DESTINO + CAB + CUERPO)
+        fich.close()
         
     elif METHOD == "BYE":
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
         my_socket.send(METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n")
+        LINE = METHOD + " sip:" + OPTION + " SIP/2.0\n"
+        fich = open(UA['log_path'], 'a')
+        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        fich.write(Time + ' Sent to ' + DESTINO + LINE)
+        fich.close()
         
     else:
         my_socket.send(METHOD + " sip: Método no registrado")
@@ -57,8 +77,15 @@ if __name__ == "__main__":
         data = my_socket.recv(1024)
     except socket.error:
         SOCKET_ERROR = UA['regproxy_ip'] + " PORT:" + UA['regproxy_puerto']
-        sys.exit("No server listening at " + SOCKET_ERROR)
+        sys.exit("Error: No server listening at " + SOCKET_ERROR)
+        fich.write(Time + "Error: No server listening at " + SOCKET_ERROR)
+        
     print 'Recibido\r\n', data
+    DATA = data.replace("\r\n", " ") + '\n'
+    fich = open(UA['log_path'], 'a')
+    Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    fich.write(Time + ' Received from ' + DESTINO + DATA)
+    fich.close()
     
     if data == "SIP/2.0 404 User Not Found\r\n\r\n":
         sys.exit(" ")
@@ -76,8 +103,15 @@ if __name__ == "__main__":
             print "Vamos a ejecutar", aEjecutar
             os.system(aEjecutar)
             print("Ha terminado la ejecución de fich de audio")
-                        
-print "Terminando socket..."
+            fich = open(UA['log_path'], 'a')
+            Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            fich.write(Time + METHOD + " sip:" + OPTION + " SIP/2.0\n")
+            fich.close()
+        
+        elif METHOD == 'BYE':
+            fich = open(UA['log_path'], 'a')
+            Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            fich.write(Time + ' Finishing...')               
+            fich.close()
 # Cerramos todo
 my_socket.close()
-print "Fin."        
