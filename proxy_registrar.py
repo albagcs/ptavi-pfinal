@@ -48,10 +48,13 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
 
     def handle(self):
+        DESTINO = self.client_address[0] + ' ' + str(self.client_address[1])
+        fich = open(PR['log_logpath'], 'a')
         while 1:
             line = self.rfile.read()
             if not line:
                 break
+            LINE = line.replace("\r\n", ' ') + '\n'
             METHODS = ['REGISTER', 'INVITE', 'ACK', 'BYE']
             line_partida = line.split(":")
             Method = line_partida[0].split(" ")[0]
@@ -79,8 +82,13 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     print Client + " Borrado\r\n"
                 self.register2file()
                 self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
-                
+                Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
+                fich.write(Time + ' Sent to ' + DESTINO + " SIP/2.0 200 OK\n")
+                                
             elif Method == "INVITE":
+                Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
                 To_name = line_partida[1].split(" ")[0]
                 for Client in Registro:
                     if To_name == Client:
@@ -92,6 +100,8 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                         sk.connect((To_IP, int(To_Port)))
                         sk.send(line)
+                        TO = To_IP + ' ' + To_Port
+                        fich.write(Time + ' Sent to ' + TO + ' ' + LINE)
                         print "INVITE Enviado a " + To_name + '\r\n'
                         try:
                             data = sk.recv(1024)
@@ -102,16 +112,24 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                         #Tenemos directamente una conexión con el que nos abrió 
                         # el socket enviando el INVITE
                         self.wfile.write(data)
+                        DATA = data.replace("\r\n", ' ') + '\n'
+                        fich.write(Time + ' Received from ' + TO + ' ' + DATA)
+                        fich.write(Time + ' Sent to ' + DESTINO + ' ' + DATA)
+                    
                     elif Registro.has_key(To_name) == False:
                         self.wfile.write("SIP/2.0 404 User Not Found\r\n\r\n")
-                        
-            elif Method == "ACK": 
+                               
+            elif Method == "ACK":
+                Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
                 To_name = line_partida[1].split(" ")[0]
                 print 'ACK recibido y reenviado a ' + To_name + '\r\n'
                 for Client in Registro:
                     if Client == To_name:
                         To_IP = Registro[Client][0]                        
                         To_Port = Registro[Client][1]
+                TO = To_IP + ' ' + To_Port
+                fich.write(Time + ' Sent to ' + TO + ' ' + LINE)
                 #Creamos socket, configuramos y lo atamos a un servidor/puerto
                 sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -119,12 +137,16 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 sk.send(line)
                 
             elif Method == "BYE":
+                Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
                 To_name = line_partida[1].split(" ")[0]
                 print 'BYE enviado a ' + To_name + '\r\n'
                 for Client in Registro:
                     if Client == To_name:
                         To_IP = Registro[Client][0]                        
                         To_Port = Registro[Client][1]
+                TO = To_IP + ' ' + To_Port
+                fich.write(Time + ' Sent to ' + TO + ' ' + LINE)
                 #Creamos socket, configuramos y lo atamos a un servidor/puerto
                 sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -141,6 +163,9 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 self.wfile.write(data)
                 # cerramos el socket al final del todo, ya no lo utilizremos +
                 sk.close()
+                DATA = data.replace("\r\n", ' ') + '\n'
+                fich.write(Time + ' Received from ' + TO + ' ' + DATA)
+                fich.write(Time + ' Sent to ' + DESTINO + ' ' + DATA)
                                
             else:
                 self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
@@ -171,5 +196,10 @@ if __name__ == "__main__":
     Registro = {}
     # Creamos servidor Registrar y escuchamos
     serv = SocketServer.UDPServer(("", int(LISTENING_PORT)), SIPRegisterHandler)
+    # Abrimos fichero log_proxy.txt
+    fich = open(PR['log_logpath'], 'w')
+    Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    fich.write(Time + ' Starting...\n')
+    fich.close()
     print "Server " + PR['server_name'] + "listening at port " + LISTENING_PORT
     serv.serve_forever()
