@@ -28,46 +28,43 @@ if __name__ == "__main__":
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((UA['regproxy_ip'], int(UA['regproxy_puerto'])))
-    # Empezamos a escribir en el fichero log
-    DESTINO = UA['regproxy_ip'] + ':' + UA['regproxy_puerto'] + ': '
+    TO = UA['regproxy_ip'] + ':' + UA['regproxy_puerto'] + ': '
     # Enviamos diferentes cosas según el método
     if METHOD == "REGISTER":
         LINE = UA['account_username'] + ":" + UA['uaserver_puerto']
-        print "Enviando:\r\n" + METHOD + " sip:" + LINE + " SIP/2.0"
-        print "Enviando: " + "EXPIRES:" + str(OPTION) + '\r\n\r\n'
-        LINE_EXPIRES = "Expires: " + str(OPTION) + '\r\n\r\n'
-        my_socket.send(METHOD + " sip:" + LINE + " SIP/2.0\r\n" + LINE_EXPIRES)
-        EXPIRE =  " sip:" + LINE + " SIP/2.0 Expires: " + str(OPTION) + '\n'
+        EXPIRES = "Expires: " + str(OPTION) + '\r\n\r\n'
+        SEND =  METHOD + " sip:" + LINE + " SIP/2.0\r\n" + EXPIRES
+        print "Enviado:\r\n" + METHOD + " sip:" + LINE + " SIP/2.0\n" + EXPIRES
+        my_socket.send(SEND)
         fich = open(UA['log_path'], 'w')
         Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         START = 'Starting...\n'
-        fich.write(START + Time + ' Sent to ' + DESTINO + METHOD + ' ' + EXPIRE)
+        fich.write(START + Time + ' Sent to ' + TO + SEND.replace('\r\n',' ')
         fich.close()
         
     elif METHOD == "INVITE":
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
         print "Content type: application/sdp\r\n\r\n" 
         APPLICATION = "Content type:application/sdp" + "\r\n\r\n"
-        CABECERAS = METHOD + " sip:" + OPTION + " SIP/2.0\r\n" + APPLICATION
+        HEAD = METHOD + " sip:" + OPTION + " SIP/2.0\r\n" + APPLICATION
         O = "o=" + UA['account_username'] + " " + UA['uaserver_ip'] + " \r\n"
         M = "m=audio " + UA['rtpaudio_puerto'] + " RTP\r\n"
-        CUERPO = "v=0\r\n" + O + "s=mysession\r\n" + "t=0\r\n" + M
-        print CUERPO
-        my_socket.send(CABECERAS + CUERPO)
-        CAB = CABECERAS.replace("\r\n", " ")
-        CUERPO = CUERPO.replace('\r\n', ' ') + '\n'
+        BODY = "v=0\r\n" + O + "s=mysession\r\n" + "t=0\r\n" + M
+        print BODY
+        my_socket.send(HEAD + BODY)
+        BODY = BODY.replace('\r\n', ' ') + '\n'
         fich = open(UA['log_path'], 'a')
-        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-        fich.write(Time + ' Sent to ' + DESTINO + CAB + CUERPO)
+        Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
+        fich.write(Time + ' Sent to ' + TO + HEAD.replace("\r\n", " ") + BODY)
         fich.close()
         
     elif METHOD == "BYE":
+        LINE = METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
-        my_socket.send(METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n")
-        LINE = METHOD + " sip:" + OPTION + " SIP/2.0\n"
+        my_socket.send(LINE)
         fich = open(UA['log_path'], 'a')
         Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-        fich.write(Time + ' Sent to ' + DESTINO + LINE)
+        fich.write(Time + ' Sent to ' + TO + LINE.replace('\r\n', ' ') + '\n'
         fich.close()
         
     else:
@@ -78,13 +75,15 @@ if __name__ == "__main__":
     except socket.error:
         SOCKET_ERROR = UA['regproxy_ip'] + " PORT:" + UA['regproxy_puerto']
         sys.exit("Error: No server listening at " + SOCKET_ERROR)
+        fich = open(UA['log_path'], 'a')
+        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         fich.write(Time + "Error: No server listening at " + SOCKET_ERROR)
         
     print 'Recibido\r\n', data
     DATA = data.replace("\r\n", " ") + '\n'
     fich = open(UA['log_path'], 'a')
     Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-    fich.write(Time + ' Received from ' + DESTINO + DATA)
+    fich.write(Time + ' Received from ' + TO + DATA)
     fich.close()
     
     if data == "SIP/2.0 404 User Not Found\r\n\r\n":
