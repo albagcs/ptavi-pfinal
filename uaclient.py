@@ -33,18 +33,18 @@ if __name__ == "__main__":
     if METHOD == "REGISTER":
         LINE = UA['account_username'] + ":" + UA['uaserver_puerto']
         EXPIRES = "Expires: " + str(OPTION) + '\r\n\r\n'
-        SEND =  METHOD + " sip:" + LINE + " SIP/2.0\r\n" + EXPIRES
+        SEND = METHOD + " sip:" + LINE + " SIP/2.0\r\n" + EXPIRES
         print "Enviado:\r\n" + METHOD + " sip:" + LINE + " SIP/2.0\n" + EXPIRES
         my_socket.send(SEND)
         fich = open(UA['log_path'], 'w')
         Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         START = 'Starting...\n'
-        fich.write(START + Time + ' Sent to ' + TO + SEND.replace('\r\n',' ')
+        fich.write(START + Time + ' Sent to ' + TO + SEND.replace('\r\n', ' '))
         fich.close()
-        
+
     elif METHOD == "INVITE":
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
-        print "Content type: application/sdp\r\n\r\n" 
+        print "Content type: application/sdp\r\n\r\n"
         APPLICATION = "Content type:application/sdp" + "\r\n\r\n"
         HEAD = METHOD + " sip:" + OPTION + " SIP/2.0\r\n" + APPLICATION
         O = "o=" + UA['account_username'] + " " + UA['uaserver_ip'] + " \r\n"
@@ -57,19 +57,19 @@ if __name__ == "__main__":
         Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         fich.write(Time + ' Sent to ' + TO + HEAD.replace("\r\n", " ") + BODY)
         fich.close()
-        
+
     elif METHOD == "BYE":
         LINE = METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
         my_socket.send(LINE)
         fich = open(UA['log_path'], 'a')
         Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-        fich.write(Time + ' Sent to ' + TO + LINE.replace('\r\n', ' ') + '\n'
+        fich.write(Time + ' Sent to ' + TO + LINE.replace('\r\n', ' ') + '\n')
         fich.close()
-        
+
     else:
         my_socket.send(METHOD + " sip: Método no registrado")
-   
+
     try:
         data = my_socket.recv(1024)
     except socket.error:
@@ -78,14 +78,14 @@ if __name__ == "__main__":
         fich = open(UA['log_path'], 'a')
         Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         fich.write(Time + "Error: No server listening at " + SOCKET_ERROR)
-        
+
     print 'Recibido\r\n', data
     DATA = data.replace("\r\n", " ") + '\n'
     fich = open(UA['log_path'], 'a')
     Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
     fich.write(Time + ' Received from ' + TO + DATA)
     fich.close()
-    
+
     if data == "SIP/2.0 404 User Not Found\r\n\r\n":
         sys.exit(" ")
     else:
@@ -106,11 +106,11 @@ if __name__ == "__main__":
             Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
             fich.write(Time + METHOD + " sip:" + OPTION + " SIP/2.0\n")
             fich.close()
-        
+
         elif METHOD == 'BYE':
             fich = open(UA['log_path'], 'a')
             Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-            fich.write(Time + ' Finishing...')               
+            fich.write(Time + ' Finishing...')
             fich.close()
 # Cerramos todo
 my_socket.close()
