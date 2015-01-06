@@ -36,8 +36,8 @@ if __name__ == "__main__":
         SEND = METHOD + " sip:" + LINE + " SIP/2.0\r\n" + EXPIRES
         print "Enviado:\r\n" + METHOD + " sip:" + LINE + " SIP/2.0\n" + EXPIRES
         my_socket.send(SEND)
-        fich = open(UA['log_path'], 'w')
-        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        fich = open(UA['log_path'], 'a')
+        Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         START = 'Starting...\n'
         fich.write(START + Time + ' Sent to ' + TO + SEND.replace('\r\n', ' '))
         fich.close()
@@ -63,12 +63,9 @@ if __name__ == "__main__":
         print "Enviando:\r\n" + METHOD + " sip:" + OPTION + " SIP/2.0"
         my_socket.send(LINE)
         fich = open(UA['log_path'], 'a')
-        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         fich.write(Time + ' Sent to ' + TO + LINE.replace('\r\n', ' ') + '\n')
         fich.close()
-
-    else:
-        my_socket.send(METHOD + " sip: Método no registrado")
 
     try:
         data = my_socket.recv(1024)
@@ -76,13 +73,13 @@ if __name__ == "__main__":
         SOCKET_ERROR = UA['regproxy_ip'] + " PORT:" + UA['regproxy_puerto']
         sys.exit("Error: No server listening at " + SOCKET_ERROR)
         fich = open(UA['log_path'], 'a')
-        Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+        Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         fich.write(Time + "Error: No server listening at " + SOCKET_ERROR)
 
     print 'Recibido\r\n', data
     DATA = data.replace("\r\n", " ") + '\n'
     fich = open(UA['log_path'], 'a')
-    Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
     fich.write(Time + ' Received from ' + TO + DATA)
     fich.close()
 
@@ -103,14 +100,14 @@ if __name__ == "__main__":
             os.system(aEjecutar)
             print("Ha terminado la ejecución de fich de audio")
             fich = open(UA['log_path'], 'a')
-            Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
             fich.write(Time + METHOD + " sip:" + OPTION + " SIP/2.0\n")
             fich.close()
 
         elif METHOD == 'BYE':
             fich = open(UA['log_path'], 'a')
-            Time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-            fich.write(Time + ' Finishing...')
+            Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
+            fich.write(Time + ' Finishing...\r\n')
             fich.close()
 # Cerramos todo
 my_socket.close()
