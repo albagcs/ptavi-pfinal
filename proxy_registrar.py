@@ -7,6 +7,7 @@ en UDP simple
 
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+from uaserver import Log
 import SocketServer
 import socket
 import sys
@@ -54,12 +55,10 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         
     def handle(self):
         DESTINO = self.client_address[0] + ' ' + str(self.client_address[1])
-        fich = open(PR['log_logpath'], 'a')
         while 1:
             line = self.rfile.read()
             if not line:
                 break
-            LINE = line.replace("\r\n", ' ') + '\n'
             METHODS = ['REGISTER', 'INVITE', 'ACK', 'BYE']
             line_partida = line.split(":")
             Method = line_partida[0].split(" ")[0]
@@ -86,14 +85,13 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     del Registro[Clave]
                     print Client + " Borrado\r\n"
                 self.register2file()
-                self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
-                Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
-                fich.write(Time + ' Sent to ' + DESTINO + " SIP/2.0 200 OK\n")
+                respuesta = "SIP/2.0 200 OK\r\n\r\n"
+                self.wfile.write(respuesta)
+                Log().Log_write(PR['log_logpath'], 'receive', DESTINO, line)
+                Log().Log_write(PR['log_logpath'], 'send', DESTINO, respuesta)
                                 
             elif Method == "INVITE":
-                Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
+                Log().Log_write(PR['log_logpath'], 'receive', DESTINO, line)
                 To_name = line_partida[1].split(" ")[0]
                 self.Search_User(To_name)
                 if Registro.has_key(To_name) == False:
@@ -106,29 +104,28 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     my_skt.connect((To['ip'], int(To['puerto'])))
                     my_skt.send(line)
                     TO = To['ip'] + ' ' + To['puerto']
-                    fich.write(Time + ' Sent to ' + TO + ' ' + LINE)
+                    Log().Log_write(PR['log_logpath'], 'send', TO, line)
                     print "INVITE Enviado a " + To_name + '\r\n'
                     try:
                         data = my_skt.recv(1024)
                     except socket.error:
-                        SOCKET_ERROR = To_IP + " PORT:" + To_Port
-                        sys.exit("No server listening at " + SOCKET_ERROR)
+                        SKT_ERROR = To_IP + " PORT:" + To_Port
+                        sys.exit("No server listening at " + SKT_ERROR)
+                        Log().Log_write(UA['log_path'], 'error', TO, SKT_ERROR)
                     print 'Respuesta recibida de ' + To_name + '\r\n'
                     #Tenemos directamente una conexión con el que nos abrió 
                     # el socket enviando el INVITE
                     self.wfile.write(data)
-                    DATA = data.replace("\r\n", ' ') + '\n'
-                    fich.write(Time + ' Received from ' + TO + ' ' + DATA)
-                    fich.write(Time + ' Sent to ' + DESTINO + ' ' + DATA)
+                    Log().Log_write(PR['log_logpath'], 'receive', TO, data)
+                    Log().Log_write(PR['log_logpath'], 'send', DESTINO, data)
                                
             elif Method == "ACK":
-                Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
+                Log().Log_write(PR['log_logpath'], 'receive', DESTINO, line)
                 To_name = line_partida[1].split(" ")[0]
                 self.Search_User(To_name)
                 print 'ACK recibido y reenviado a ' + To_name + '\r\n'
                 TO = To['ip'] + ' ' + To['puerto']
-                fich.write(Time + ' Sent to ' + TO + ' ' + LINE)
+                Log().Log_write(PR['log_logpath'], 'send', TO, line)
                 #Creamos socket, configuramos y lo atamos a un servidor/puerto
                 my_skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 my_skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -136,8 +133,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 my_skt.send(line)
                 
             elif Method == "BYE":
-                Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-                fich.write(Time + ' Received from ' + DESTINO + ' ' + LINE)
+                Log().Log_write(PR['log_logpath'], 'receive', DESTINO, line)
                 To_name = line_partida[1].split(" ")[0]
                 self.Search_User(To_name)
                 if Registro.has_key(To_name) == False:
@@ -145,7 +141,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 else:
                     print 'BYE enviado a ' + To_name + '\r\n'
                     TO = To['ip'] + ' ' + To['puerto']
-                    fich.write(Time + ' Sent to ' + TO + ' ' + LINE)
+                    Log().Log_write(PR['log_logpath'], 'send', TO, line)
                     #Creamos socket, configuramos y lo atamos a un servidor
                     my_skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     my_skt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -154,17 +150,17 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                     try:
                         data = my_skt.recv(1024)
                     except socket.error:
-                        SOCKET_ERROR = To_IP + " PORT:" + To_Port
-                        sys.exit("No server listening at " + SOCKET_ERROR)
+                        SKT_ERROR = To_IP + " PORT:" + To_Port
+                        sys.exit("No server listening at " + SKT_ERROR)
+                        Log().Log_write(UA['log_path'], 'error', TO, SKT_ERROR)
                     print 'Respuesta recibida de ' + To_name + '\r\n'
                     #Tenemos directamente una conexión con el que nos abrió 
                     # el socket enviando el INVITE
                     self.wfile.write(data)
                     # cerramos el socket al final del todo, no lo utilizremos +
                     my_skt.close()
-                    DATA = data.replace("\r\n", ' ') + '\n'
-                    fich.write(Time + ' Received from ' + TO + ' ' + DATA)
-                    fich.write(Time + ' Sent to ' + DESTINO + ' ' + DATA)
+                    Log().Log_write(PR['log_logpath'], 'receive', TO, data)
+                    Log().Log_write(PR['log_logpath'], 'send', DESTINO, data)
                                
             else:
                 self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
