@@ -9,6 +9,8 @@ from xml.sax.handler import ContentHandler
 import SocketServer
 import sys
 import os
+import time
+
 
 class XMLHandler(ContentHandler):
 
@@ -24,7 +26,6 @@ class XMLHandler(ContentHandler):
             'log': ['path'],
             'audio': ['path']
         }
-
         self.config = {}
 
     def startElement(self, name, attrs):
@@ -41,7 +42,20 @@ class XMLHandler(ContentHandler):
 
     def get_tags(self):
         return self.config
-
+        
+class Log(ContentHandler):
+    def Log_write(self, fichero, tipo, to, message):
+        fich = open(fichero, 'a')
+        Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
+        message = message.replace('\r\n', ' ') + '\n'
+        if tipo == 'send':
+            fich.write(Time + ' Sent to ' + to + ': ' + message)
+        elif tipo == 'receive':
+            fich.write(Time + ' Received from ' + to + ': ' + message)
+        elif tipo == 'error':
+            fich.write(Time + "Error: No server listening at " + ': ' + message)
+        fich.close()
+  
 class ServerHandler(SocketServer.DatagramRequestHandler):
   
     def handle(self):
@@ -50,12 +64,14 @@ class ServerHandler(SocketServer.DatagramRequestHandler):
             line = self.rfile.read()
             if not line:
                 break
+            TO = self.client_address[0] + ' ' + str(self.client_address[1])
             METHODS = ['INVITE', 'ACK', 'BYE']
             Method = line.split(" ")[0]
             print "El cliente nos manda " + line
             if not Method in METHODS:
                 self.wfile.write("SIP/2.0 405 Method Not Allowed\r\n\r\n")
-            if Method == 'INVITE':
+            elif Method == 'INVITE':
+                Log().Log_write(UA['log_path'], 'receive', TO, line)
                 # Las utilizaremos para el envío de rtp
                 receptor_Ip = line.split("o=")[1].split(" ")[1].split("s")[0]
                 receptor_Puerto = line.split("m=")[1].split(" ")[1]
@@ -72,8 +88,10 @@ class ServerHandler(SocketServer.DatagramRequestHandler):
                 CUERPO = "v=0\r\n" + O + " \r\ns=mysession\r\n" + "t=0\r\n" + M
                 respuesta += CUERPO
                 self.wfile.write(respuesta)
+                Log().Log_write(UA['log_path'], 'send', TO, respuesta)
                
             elif Method == 'ACK':
+                Log().Log_write(UA['log_path'], 'receive', TO, line)
                 os.system("chmod 777 mp32rtp")
                 aEjecutar = './mp32rtp -i ' + Rtp['receptor_Ip'] + ' -p '
                 aEjecutar += Rtp['receptor_Puerto'] + " < " + UA['audio_path']
@@ -82,8 +100,10 @@ class ServerHandler(SocketServer.DatagramRequestHandler):
                 print("Ha terminado la ejecución de fich de audio")
                 
             elif Method == 'BYE':
+                Log().Log_write(UA['log_path'], 'receive', TO, line)
                 respuesta = "SIP/2.0 200 OK\r\n\r\n"
                 self.wfile.write(respuesta)
+                Log().Log_write(UA['log_path'], 'send', TO, respuesta)
             else:
                 self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
 
