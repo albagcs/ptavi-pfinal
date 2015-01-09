@@ -1,8 +1,8 @@
 <config>
-    <account username="alba@alumnosurjc.net" passwd="!ELEMenT"/>
-    <uaserver ip="127.0.0.1" puerto="5060"/>
-    <rtpaudio puerto="12345"/>
+    <account username="alba@urjc.es" passwd="!ELEMenT"/>
+    <uaserver ip="" puerto="5060"/>
+    <rtpaudio puerto="23032"/>
     <regproxy ip= "127.0.0.1" puerto="5555"/>
-    <log path="log.txt"/> 
+    <log path="log_UA1.txt"/> 
     <audio path="cancion.mp3"/>
 </config>

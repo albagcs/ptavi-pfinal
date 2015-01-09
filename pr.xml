@@ -1,5 +1,5 @@
 <config>
     <server name="MiServidorRegistrar/Proxy" ip="127.0.0.1" puerto ="5555"/>
     <database path="database.txt" passwdpath=""/>
-    <log logpath="log.txt"/>
+    <log logpath="log_proxy.txt"/>
 </config>
