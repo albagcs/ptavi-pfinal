@@ -92,10 +92,14 @@ if __name__ == "__main__":
             rcv_Ip = data.split("o=")[1].split(" ")[1].split("s")[0]
             rcv_Port = data.split("m=")[1].split(" ")[1]
             os.system("chmod 777 mp32rtp")
-            aEjecutar = './mp32rtp -i ' + rcv_Ip + ' -p '
-            aEjecutar += rcv_Port + " < " + UA['audio_path']
+            aEjecutar = "./mp32rtp -i " + rcv_Ip + " -p " + rcv_Port
+            aEjecutar += " < " + UA['audio_path']
+            aEjecutar_cvlc = 'cvlc rtp://@' + rcv_Ip + ':' + rcv_Port
+            aEjecutar_cvlc += " 2> /dev/null"
             print "Vamos a ejecutar", aEjecutar
+            print "Vamos a ejecutar", aEjecutar_cvlc
             os.system(aEjecutar)
+            os.system(aEjecutar + "&")
             print("Ha terminado la ejecución de fich de audio")
             Log().Log(UA['log_path'], 'send', TO, SEND)
 
