@@ -42,9 +42,10 @@ class XMLHandler(ContentHandler):
 
     def get_tags(self):
         return self.config
-        
+
+
 class Log(ContentHandler):
-    def Log_write(self, fichero, tipo, to, message):
+    def Log(self, fichero, tipo, to, message):
         fich = open(fichero, 'a')
         Time = time.strftime('%Y%m%d%H%M%S', time.gmtime())
         message = message.replace('\r\n', ' ') + '\n'
@@ -53,59 +54,71 @@ class Log(ContentHandler):
         elif tipo == 'receive':
             fich.write(Time + ' Received from ' + to + ': ' + message)
         elif tipo == 'error':
-            fich.write(Time + "Error: No server listening at " + ': ' + message)
+            fich.write(Time + "Error: No server listening at: " + message)
+        elif tipo == 'Init/end':
+            fich.write(Time + ' ' + message)
         fich.close()
-  
+
+
 class ServerHandler(SocketServer.DatagramRequestHandler):
-  
+
     def handle(self):
-       
+
         while 1:
             line = self.rfile.read()
             if not line:
                 break
-            TO = self.client_address[0] + ' ' + str(self.client_address[1])
+            FROM = self.client_address[0] + ' ' + str(self.client_address[1])
             METHODS = ['INVITE', 'ACK', 'BYE']
             Method = line.split(" ")[0]
             print "El cliente nos manda " + line
             if not Method in METHODS:
-                self.wfile.write("SIP/2.0 405 Method Not Allowed\r\n\r\n")
-            elif Method == 'INVITE':
-                Log().Log_write(UA['log_path'], 'receive', TO, line)
-                # Las utilizaremos para el envío de rtp
-                receptor_Ip = line.split("o=")[1].split(" ")[1].split("s")[0]
-                receptor_Puerto = line.split("m=")[1].split(" ")[1]
-                Rtp['receptor_Ip'] = receptor_Ip
-                Rtp['receptor_Puerto'] = receptor_Puerto
-                #Respondemos al invite
-                respuesta = "SIP/2.0 100 Trying\r\n\r\n"
-                respuesta += "SIP/2.0 180 Ringing\r\n\r\n"
-                respuesta += "SIP/2.0 200 OK\r\n"
-                respuesta += "Content type:application/sdp" + "\r\n\r\n"
-                O = "o=" + UA['account_username'] + " " + UA['uaserver_ip']
-                # Colocamos nuestro RTP puerto para que nos manden ahí
-                M = "m=audio " + UA['rtpaudio_puerto'] + " RTP\r\n"
-                CUERPO = "v=0\r\n" + O + " \r\ns=mysession\r\n" + "t=0\r\n" + M
-                respuesta += CUERPO
-                self.wfile.write(respuesta)
-                Log().Log_write(UA['log_path'], 'send', TO, respuesta)
-               
-            elif Method == 'ACK':
-                Log().Log_write(UA['log_path'], 'receive', TO, line)
-                os.system("chmod 777 mp32rtp")
-                aEjecutar = './mp32rtp -i ' + Rtp['receptor_Ip'] + ' -p '
-                aEjecutar += Rtp['receptor_Puerto'] + " < " + UA['audio_path']
-                print "Vamos a ejecutar", aEjecutar
-                os.system(aEjecutar)
-                print("Ha terminado la ejecución de fich de audio")
-                
-            elif Method == 'BYE':
-                Log().Log_write(UA['log_path'], 'receive', TO, line)
-                respuesta = "SIP/2.0 200 OK\r\n\r\n"
-                self.wfile.write(respuesta)
-                Log().Log_write(UA['log_path'], 'send', TO, respuesta)
+                response = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
+                self.wfile.write(response)
+                Log().Log(UA['log_path'], 'receive', FROM, response)
             else:
-                self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
+                EOL = line.split('\r\n')[0].split(' ')[2]
+                sip = line.split(":")[0].split(' ')[1]
+                if  sip != 'sip' or EOL != 'SIP/2.0':
+                    response = "SIP/2.0 400 Bad Request\r\n\r\n"
+                    self.wfile.write(response)
+                    Log().Log(UA['log_path'], 'receive', FROM, response)
+                elif Method == 'INVITE':
+                    Log().Log(UA['log_path'], 'receive', FROM, line)
+                    # Las utilizaremos para el envío de rtp
+                    rcv_Ip = line.split("o=")[1].split(" ")[1].split("s")[0]
+                    rcv_Port = line.split("m=")[1].split(" ")[1]
+                    Rtp['rcv_Ip'] = rcv_Ip
+                    Rtp['rcv_Port'] = rcv_Port
+                    #Respondemos al invite
+                    response = "SIP/2.0 100 Trying\r\n\r\n"
+                    response += "SIP/2.0 180 Ringing\r\n\r\n"
+                    response += "SIP/2.0 200 OK\r\n"
+                    response += "Content type:application/sdp" + "\r\n\r\n"
+                    O = "o=" + UA['account_username'] + " " + UA['uaserver_ip']
+                    # Colocamos nuestro RTP puerto para que nos manden ahí
+                    M = "m=audio " + UA['rtpaudio_puerto'] + " RTP\r\n"
+                    BODY = "v=0\r\n" + O + " \r\ns=mysession\r\n" + "t=0\r\n"
+                    response += BODY + M
+                    self.wfile.write(response)
+                    Log().Log(UA['log_path'], 'send', FROM, response)
+
+                elif Method == 'ACK':
+                    Log().Log(UA['log_path'], 'receive', FROM, line)
+                    os.system("chmod 777 mp32rtp")
+                    aEjecutar = './mp32rtp -i ' + Rtp['rcv_Ip'] + ' -p '
+                    aEjecutar += Rtp['rcv_Port'] + " < " + UA['audio_path']
+                    print "Vamos a ejecutar", aEjecutar
+                    os.system(aEjecutar)
+                    print("Ha terminado la ejecución de fich de audio")
+
+                elif Method == 'BYE':
+                    Log().Log(UA['log_path'], 'receive', FROM, line)
+                    response = "SIP/2.0 200 OK\r\n\r\n"
+                    self.wfile.write(response)
+                    Log().Log(UA['log_path'], 'send', FROM, response)
+                else:
+                    self.wfile.write("SIP/2.0 400 Bad Request\r\n\r\n")
 
 if __name__ == "__main__":
     try:
@@ -119,6 +132,11 @@ if __name__ == "__main__":
     parser.parse(open(CONFIG))
     UA = cHandler.get_tags()
     # Creamos servidor y escuchamos
-    serv = SocketServer.UDPServer(("", int(UA['uaserver_puerto'])), ServerHandler)
+    s = SocketServer.UDPServer(("", int(UA['uaserver_puerto'])), ServerHandler)
     print "Listening..."
-    serv.serve_forever()
+    Log().Log(UA['log_path'], 'Init/end', ' ', 'Starting...')
+    try:
+        s.serve_forever()
+    except KeyboardInterrupt:
+        Log().Log(UA['log_path'], 'Init/end', ' ', 'Finishing...\n')
+        print ('Servidor Interrumpido (Ctrl + C)')
