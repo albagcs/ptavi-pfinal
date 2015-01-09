@@ -48,11 +48,21 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
     """
     SIP server class
     """
-    def Search_User(self, user):
-        for Client in Registro:
-            if user == Client:
-                Uas['ip'] = Registro[Client][0]
-                Uas['puerto'] = Registro[Client][1]
+    def Search_User(self, user_name):
+        fichero = open(PR['database_path'], 'r')
+        data = fichero.readlines()
+        fichero.close()
+        lines = data[1:]
+        i = 0
+        Found = False
+        while not Found and i< len(lines):
+            user = lines[i].split('\t')[0]
+            if user_name == user:
+                Uas['ip'] = lines[i].split('\t')[1]
+                Uas['puerto'] = lines[i].split('\t')[2]
+                Found = True
+            i = i + 1
+        return Found
 
     def handle(self):
         UAC = self.client_address[0] + ' ' + str(self.client_address[1])
@@ -97,8 +107,8 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
             elif Method == "INVITE":
                 Log().Log(PR['log_logpath'], 'receive', UAC, line)
                 To_name = line_partida[1].split(" ")[0]
-                self.Search_User(To_name)
-                if not To_name in Registro:
+                Found = self.Search_User(To_name)
+                if Found == False:
                     response = "SIP/2.0 404 User Not Found\r\n\r\n"
                     self.wfile.write(response)
                     Log().Log(PR['log_logpath'], 'send', UAC, response)
@@ -144,8 +154,8 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
             elif Method == "BYE":
                 Log().Log(PR['log_logpath'], 'receive', UAC, line)
                 To_name = line_partida[1].split(" ")[0]
-                self.Search_User(To_name)
-                if not To_name in Registro:
+                Found = self.Search_User(To_name)
+                if Found == False:
                     response = "SIP/2.0 400 Bad Request\r\n\r\n"
                     self.wfile.write(response)
                     Log().Log(PR['log_logpath'], 'send', UAC, response)
