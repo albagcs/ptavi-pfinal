@@ -106,10 +106,14 @@ class ServerHandler(SocketServer.DatagramRequestHandler):
                 elif Method == 'ACK':
                     Log().Log(UA['log_path'], 'receive', FROM, line)
                     os.system("chmod 777 mp32rtp")
-                    aEjecutar = './mp32rtp -i ' + Rtp['rcv_Ip'] + ' -p '
+                    aEjecutar = "./mp32rtp -i " + Rtp['rcv_Ip'] + " -p "
                     aEjecutar += Rtp['rcv_Port'] + " < " + UA['audio_path']
+                    aEjecutar_cvlc = 'cvlc rtp://@' + Rtp['rcv_Ip'] + ':'
+                    aEjecutar_cvlc += Rtp['rcv_Port'] + " 2> /dev/null"
                     print "Vamos a ejecutar", aEjecutar
+                    print "Vamos a ejecutar", aEjecutar_cvlc
                     os.system(aEjecutar)
+                    os.system(aEjecutar_cvlc + "&")
                     print("Ha terminado la ejecución de fich de audio")
 
                 elif Method == 'BYE':
