@@ -55,7 +55,7 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         lines = data[1:]
         i = 0
         Found = False
-        while not Found and i< len(lines):
+        while not Found and i < len(lines):
             user = lines[i].split('\t')[0]
             if user_name == user:
                 Uas['ip'] = lines[i].split('\t')[1]
